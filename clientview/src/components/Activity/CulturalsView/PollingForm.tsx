@@ -130,6 +130,14 @@ export const PollingForm = ({ eventId, activityId, activity }: PollingFormProps)
 
     const containerRef = useRef<HTMLDivElement>(null);
     const { participants, pollData = [], showPoll, teams = [], isSoloPerformance } = activity;
+    const shouldShowChangeVoteHint = !!userVoted && !!selectedTeam && selectedTeam !== userVoted;
+
+    const getErrorMessage = (err: unknown) => {
+        if (err instanceof Error && err.message) return err.message;
+        if (typeof err === 'string' && err.trim()) return err;
+        const anyErr = err as { response?: { data?: { message?: string } }, data?: { message?: string } } | null;
+        return anyErr?.response?.data?.message || anyErr?.data?.message || 'Failed to submit vote. Please try again.';
+    };
 
     // Motion values for drag interactions
     const x = useMotionValue(0);
@@ -205,6 +213,7 @@ export const PollingForm = ({ eventId, activityId, activity }: PollingFormProps)
     const handleSelectTeam = (teamId: string) => {
         if (isAuthenticated && activity.canVote) {
             // Allow users to change their vote by selecting a new team
+            setError(null);
             setSelectedTeam(teamId === selectedTeam ? null : teamId);
         } else if (!isAuthenticated && activity.canVote) {
             promptLogin();
@@ -223,8 +232,7 @@ export const PollingForm = ({ eventId, activityId, activity }: PollingFormProps)
                     setTimeout(() => x.set(0), 300);
                 },
                 onError: (err: any) => {
-                    const errorMessage = err?.message || 'Failed to submit vote. Please try again.';
-                    setError(errorMessage);
+                    setError(getErrorMessage(err));
                     setTimeout(() => x.set(0), 300);
                 },
                 onSettled: () => setTimeout(() => x.set(0), 10),
@@ -509,12 +517,21 @@ export const PollingForm = ({ eventId, activityId, activity }: PollingFormProps)
                     icon={<CheckCircleIcon fontSize="inherit" />}
                     sx={{ mt: 2, fontSize: '0.85rem' }}
                 >
-                    Thanks for voting! Want to change your vote? Select a different option and swipe again.
+                    Thanks for voting! Your vote has been recorded.
+                </Alert>
+            )}
+            {shouldShowChangeVoteHint && (
+                <Alert
+                    severity="info"
+                    icon={<HowToVoteIcon fontSize="inherit" />}
+                    sx={{ mt: 1.5, fontSize: '0.85rem' }}
+                >
+                    Want to change your vote? Swipe again to confirm the new choice.
                 </Alert>
             )}
             {/* Swipe to Vote Button */}
             <AnimatePresence>
-                {selectedTeam && isAuthenticated && !castVoteMutation.isPending && (
+                {selectedTeam && isAuthenticated && !castVoteMutation.isPending && (!userVoted || selectedTeam !== userVoted) && (
                     <Box ref={containerRef} sx={{ width: '100%' }}>
                         {error && (
                             <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}>
