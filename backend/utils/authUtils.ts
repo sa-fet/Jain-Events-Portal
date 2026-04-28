@@ -52,6 +52,7 @@ const getUserFromToken = async (token: string, fetchFromDb: boolean = false): Pr
 		}
 
 		return UserData.parse({
+			uid: decoded.uid,
 			name: decoded.name || decoded.email?.split('@')[0] || '',
 			username: decoded.email || '',
 			role: decoded.role || Role.USER,

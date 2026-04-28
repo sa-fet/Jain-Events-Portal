@@ -37,6 +37,7 @@ const googleProvider = new GoogleAuthProvider();
 interface LoginContextType {
   userData: UserData | null;
   username: string | null;
+  uid: string | null;
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -159,6 +160,7 @@ export const LoginProvider = ({ children }: { children: ReactNode }) => {
   // Convert Firebase User to UserData
   const createUserDataFromFirebase = (user: User): UserData => {
     return UserData.parse({
+      uid: user.uid,
       name: user.displayName || user.email?.split('@')[0] || 'User',
       username: user.email || '',  // Using email as username
       role: Role.USER,
@@ -250,11 +252,17 @@ export const LoginProvider = ({ children }: { children: ReactNode }) => {
         // Use TokenManager for consistent token management
         if (TokenManager.needsRefresh()) {
           await TokenManager.forceRefresh();
-          // Update local token state ONLY - no backend calls
+          // Update local token state and renew backend session cookie
           const freshToken = await auth.currentUser!.getIdToken(false);
           setToken(freshToken);
           localStorage.setItem('auth_token', freshToken);
-          console.log('🔄 Firebase token refreshed locally');
+          const backendUser = await getSession(freshToken);
+          if (backendUser) {
+            setUserData(backendUser);
+            localStorage.setItem('auth_user', JSON.stringify(backendUser));
+            localStorage.setItem('auth_username', backendUser.username);
+          }
+          console.log('🔄 Firebase token refreshed and session renewed');
         }
       } catch (error) {
         console.error('❌ Token refresh failed:', error);
@@ -272,6 +280,7 @@ export const LoginProvider = ({ children }: { children: ReactNode }) => {
     };
 
     // Refresh token every 30 minutes (Firebase tokens expire after 1 hour)
+    refreshToken();
     const intervalId = setInterval(refreshToken, 30 * 60 * 1000);
 
     return () => clearInterval(intervalId);
@@ -303,6 +312,7 @@ export const LoginProvider = ({ children }: { children: ReactNode }) => {
       value={{
         userData,
         username: userData?.username || null,
+        uid: userData?.uid || null,
         token,
         isAuthenticated: !!userData,
         isLoading,

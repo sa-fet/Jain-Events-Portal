@@ -148,7 +148,13 @@ export const getPollResults = async (eventId: string, activityId: string) => {
 /**
  * Cast a vote for a team (or participant)
  */
-export const castVote = async (eventId: string, activityId: string, teamId: string, username: string) => {
+export const castVote = async (
+  eventId: string,
+  activityId: string,
+  teamId: string,
+  userUid: string,
+  legacyIdentifier?: string
+) => {
   const activityKey = `activities-${eventId}-${activityId}`;
   const activityDoc = activitiesCollection(eventId).doc(activityId);
 
@@ -161,14 +167,17 @@ export const castVote = async (eventId: string, activityId: string, teamId: stri
   if (!(activity instanceof CulturalActivity)) throw new Error(`Invalid activity type for voting: ${typeof activity}`);
   if (!activity.showPoll) throw new Error('Poll is not enabled for this activity');
 
+  if (!userUid) throw new Error('User uid missing');
+
   const pollData = activity.pollData;
+  const identifiersToRemove = new Set(
+    [userUid, legacyIdentifier].filter((value): value is string => !!value)
+  );
 
   // First, remove the user's vote from any team they previously voted for
   for (const poll of pollData) {
-    const voteIndex = poll.votes.indexOf(username);
-    if (voteIndex !== -1) {
-      poll.votes.splice(voteIndex, 1);
-    }
+    if (!poll.votes?.length) continue;
+    poll.votes = poll.votes.filter(vote => !identifiersToRemove.has(vote));
   }
 
   // Then add the vote to the selected team
@@ -178,7 +187,9 @@ export const castVote = async (eventId: string, activityId: string, teamId: stri
     pollData.push(teamPoll);
   }
 
-  teamPoll.votes.push(username);
+  if (!teamPoll.votes.includes(userUid)) {
+    teamPoll.votes.push(userUid);
+  }
   activity.pollData = pollData;
 
   await updateCachedItem<CulturalActivity>({

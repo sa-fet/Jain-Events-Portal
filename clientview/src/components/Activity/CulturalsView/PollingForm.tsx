@@ -120,7 +120,7 @@ export const PollingForm = ({ eventId, activityId, activity }: PollingFormProps)
     const theme = useTheme();
     const castVoteMutation = useCastVote(eventId, activityId);
     const { promptLogin } = useLoginPrompt();
-    const { isAuthenticated, username, token } = useLogin();
+    const { isAuthenticated, uid, token } = useLogin();
 
     const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
     const [userVoted, setUserVoted] = useState<string | null>(null);
@@ -201,13 +201,13 @@ export const PollingForm = ({ eventId, activityId, activity }: PollingFormProps)
 
     // Check user vote
     useEffect(() => {
-        if (pollData.length > 0 && username) {
-            const userVote = pollData.find(poll => poll.votes.includes(username));
+        if (pollData.length > 0 && uid) {
+            const userVote = pollData.find(poll => poll.votes.includes(uid));
             if (userVote) setUserVoted(userVote.teamId);
         } else {
             setUserVoted(null);
         }
-    }, [pollData, username]);
+    }, [pollData, uid]);
 
     // Handle selecting a team
     const handleSelectTeam = (teamId: string) => {

@@ -129,7 +129,18 @@ router.post('/:eventId/:activityId/vote/:teamId', voteRateLimiter, authMiddlewar
             res.status(400).json({ message: 'User data missing from token' });
             return;
         }
-        const result = await castVote(req.params.eventId as string, req.params.activityId as string, req.params.teamId as string, userdata.username);
+        if (!userdata.uid) {
+            res.status(400).json({ message: 'User uid missing from token' });
+            return;
+        }
+        const result = await castVote(
+            req.params.eventId as string,
+            req.params.activityId as string,
+            req.params.teamId as string,
+            userdata.uid,
+            userdata.username
+        );
+        console.log(`Vote cast successfully for team ${req.params.teamId} by user ${userdata.uid}`);
         res.status(200).json(result);
     } catch (error) {
         console.error('Error casting vote:', error);
