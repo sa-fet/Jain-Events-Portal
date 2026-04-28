@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import {
     getActivities,
     getActivityById,
@@ -14,6 +15,14 @@ import { getUserFromToken } from '@utils/authUtils';
 import { UserData } from '@common/models';
 
 const router = express.Router();
+
+const voteRateLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000, // 10 minutes
+    limit: 10, // 10 requests per IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many vote attempts. Please try again later.' },
+});
 
 /**
  * Activity Routes
@@ -113,7 +122,7 @@ router.get('/:eventId/:activityId/poll', async (req: Request, res: Response) => 
 });
 
 // Cast a vote for a participant
-router.post('/:eventId/:activityId/vote/:teamId', authMiddleware, async (req: Request, res: Response) => {
+router.post('/:eventId/:activityId/vote/:teamId', voteRateLimiter, authMiddleware, async (req: Request, res: Response) => {
     try {
         const userdata = 'user' in req ? req.user as UserData : null;
         if (!userdata) {
