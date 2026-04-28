@@ -42,7 +42,7 @@ const ITEM_KEY_PREFIX = "events";
 // Helper to filter sensitive fields
 function filterEventForUser(event: any, user?: { role: number, username: string }) {
   // Only admins or managers for this event can see managers field
-  if (!user || (user.role < Role.ADMIN && !(event.managers && event.managers.includes(user.username)))) {
+  if (!user || (user.role < Role.MANAGER && !(event.managers && event.managers.includes(user.username)))) {
     const { managers, ...rest } = event;
     return rest;
   }
