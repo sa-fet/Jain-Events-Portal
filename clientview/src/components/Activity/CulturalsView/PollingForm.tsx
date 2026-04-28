@@ -503,6 +503,15 @@ export const PollingForm = ({ eventId, activityId, activity }: PollingFormProps)
                     Total votes: <b>{totalVotes}</b>
                 </Typography>
             )}
+            {userVoted && (
+                <Alert
+                    severity="success"
+                    icon={<CheckCircleIcon fontSize="inherit" />}
+                    sx={{ mt: 2, fontSize: '0.85rem' }}
+                >
+                    Thanks for voting! Want to change your vote? Select a different option and swipe again.
+                </Alert>
+            )}
             {/* Swipe to Vote Button */}
             <AnimatePresence>
                 {selectedTeam && isAuthenticated && !castVoteMutation.isPending && (
